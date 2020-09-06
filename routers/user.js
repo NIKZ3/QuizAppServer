@@ -3,7 +3,6 @@ const admin = require("../models/admin");
 const sessionData = require("../models/sessionData");
 const testSessions = require("../models/testSessions");
 const question = require("../models/questions");
-const e = require("express");
 
 const router = new express.Router();
 
@@ -32,6 +31,32 @@ router.get("/user", async (req, res) => {
     res.send("Done");
 });
 
+// !When the user logs in we will get his details then we will use sessionID from that
+router.get("/user/questions", async (req, res) => {
+    try {
+        //SessionID static for testing
+        console.log("request");
+        const sessionID = "5f546098616b4a53cf0ba984"; // todo : Extract from user schema
+        const testsession = await testSessions.findOne({ _id: sessionID });
+
+        const qid = testsession.sessionQuestions;
+
+        const sessionQuestions = await question
+            .find({ _id: { $in: qid } })
+            .select({ _id: 1, options: 1, q: 1 });
+
+        console.log(sessionQuestions);
+        res.send({
+            questions: sessionQuestions,
+            nQuestions: testsession.qcount,
+            sessionID: sessionID,
+        }).status(200);
+    } catch (e) {
+        res.send("Something went wrong").status(404);
+        console.log(e);
+    }
+});
+
 // ! req.body.answers = "sessionID":"...","answers":[{"id":"..",ans:"..."},{...}]
 // ! By checking auth we will get userEmail
 // ! While sending answers from frontend always send -1 for not selected answers to avoid errors
@@ -44,17 +69,21 @@ router.post("/user/submit", async (req, res) => {
         let qid = [];
         let userAnswers = {};
         let dataInsertion = []; //userAnswer insertion in sessionData
+        let sessionID = "5f546098616b4a53cf0ba984"; // TODO : req.body.sessionID,
 
         // ! get data ready by aligning questions and answers
-        for (data in answers) {
-            qid.push(answers[data].id);
-            userAnswers[answers[data].id] = answers[data].ans;
-            const dataTemp = {};
-            dataTemp.qID = answers[data].id;
-            dataTemp.userOption = answers[data].ans;
 
+        console.log(req.body);
+        Object.keys(answers).forEach(function (key, index) {
+            // key: the name of the object key
+            // index: the ordinal position of the key within the object
+            qid.push(key);
+            userAnswers[key] = Number(answers[key]);
+            const dataTemp = {};
+            dataTemp.qID = key;
+            dataTemp.userOption = Number(answers[key]);
             dataInsertion.push(dataTemp);
-        }
+        });
 
         //! Use array created above to fetch questions
         const sessionQuestions = await question
@@ -74,7 +103,7 @@ router.post("/user/submit", async (req, res) => {
         //! create session data consisting of user answers to all questions
         const dataUser = new sessionData({
             emailID: "n@gmail.com",
-            sessionID: req.body.sessionID,
+            sessionID: sessionID, //
             data: dataInsertion,
             score: score,
         });
@@ -83,6 +112,7 @@ router.post("/user/submit", async (req, res) => {
         console.log("This is object of users questions", sessionQuestions);
         console.log("This is object of users answers", userAnswers);
         console.log("This is for sessionData", dataUser);
+        console.log("This is dataInsertion", dataInsertion);
 
         res.send({ score: score }).status(200);
     } catch (e) {
