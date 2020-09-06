@@ -36,7 +36,7 @@ router.get("/user/questions", async (req, res) => {
     try {
         //SessionID static for testing
         console.log("request");
-        const sessionID = "5f546098616b4a53cf0ba984"; // todo : Extract from user schema
+        const sessionID = "5f54d5a76454b631e308b295"; // todo : Extract from user schema
         const testsession = await testSessions.findOne({ _id: sessionID });
 
         const qid = testsession.sessionQuestions;
@@ -69,7 +69,7 @@ router.post("/user/submit", async (req, res) => {
         let qid = [];
         let userAnswers = {};
         let dataInsertion = []; //userAnswer insertion in sessionData
-        let sessionID = "5f546098616b4a53cf0ba984"; // TODO : req.body.sessionID,
+        let sessionID = "5f54d5a76454b631e308b295"; // TODO : req.body.sessionID,
 
         // ! get data ready by aligning questions and answers
 
