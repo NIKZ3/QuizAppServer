@@ -1,0 +1,36 @@
+admin:
+{
+    emailid:"n@gmail.com",
+    password:"123456",
+},
+
+user:
+{
+    emailid:"n@gmail.com",
+    password:"123456",
+    loginState:false
+},
+
+Questions:
+{
+    Qid:1,
+    Question:"Question",
+    options:[{option:1,answer:100},{option:2,answer:100},{option:3,answer:100},{option:4,answer:100}],
+    answer:1 //Options no   
+}
+
+session:
+{
+    sessionID:1,
+    time:11:20,
+    date:11/12/2020,
+    data:[{emailid:"n@gmail.com",score:100}]
+},
+
+sessionData:
+{
+    sessionID:1,
+    userEmail:"n@gmail.com",
+    data:[{questionID:1,Useranswer:1},{questionID:2,Useranswer:2}],
+    score:100
+}
