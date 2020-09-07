@@ -3,128 +3,125 @@ const admin = require("../models/admin");
 const sessionData = require("../models/sessionData");
 const testSessions = require("../models/testSessions");
 const question = require("../models/questions");
+const user = require("../models/users");
+const jwt = require("jsonwebtoken");
+const auth = require("../middleware/auth");
 
 const router = new express.Router();
 
 //! this is test api
-router.get("/user", async (req, res) => {
-    // const test = new admin({ emailID: "NIKHIL", password: "Password" });
-
-    const questions = new question({
-        question: "This is question",
-        options: [
-            { id: 1, option: "YOOO" },
-            { id: 2, option: "YOOO" },
-            { id: 3, option: "YOOO" },
-        ],
-        answer: 1,
-    });
-
-    const tests = new testSessions({ sessionQuestions: ["1"] });
-
-    console.log(questions);
-    console.log(tests);
-    await questions.save();
-    await tests.save();
-    // await test.save();
-
-    res.send("Done");
+router.get("/user", auth, async (req, res) => {
+    try {
+        console.log(req.sessionID);
+        console.log(req.emailID);
+        console.log(req.admin);
+        res.send("worked").status(200);
+    } catch (e) {
+        console.log(e);
+        res.send("Something went wrong");
+    }
 });
 
-// !When the user logs in we will get his details then we will use sessionID from that
-router.get("/user/questions", async (req, res) => {
+router.post("/login", async (req, res) => {
     try {
-        //SessionID static for testing
-        console.log("request");
-        const sessionID = "5f54d5a76454b631e308b295"; // todo : Extract from user schema or token
-        const testsession = await testSessions.findOne({ _id: sessionID });
+        const user1 = await user.findOne({ emailID: req.body.emailID });
 
-        const qid = testsession.sessionQuestions;
-
-        const sessionQuestions = await question
-            .find({ _id: { $in: qid } })
-            .select({ _id: 1, options: 1, q: 1 });
-
-        console.log(sessionQuestions);
-        res.send({
-            questions: sessionQuestions,
-            nQuestions: testsession.qcount,
-            sessionID: sessionID,
-        }).status(200);
+        console.log(user1);
+        console.log(req.body);
+        if (user1.password == req.body.password) {
+            const token = await user1.generateAuthToken();
+            console.log("Request received");
+            res.send({ token: token, isAdmin: user1.admin });
+        } else {
+            res.status(403).send("Login denied");
+        }
     } catch (e) {
-        res.send("Something went wrong").status(404);
+        console.log(e);
+        res.status(403).send("Login Failed");
+    }
+});
+
+router.get("/user/questions", auth, async (req, res) => {
+    try {
+        if (!req.admin && req.error === undefined) {
+            const sessionID = req.sessionID;
+            const testsession = await testSessions.findOne({ _id: sessionID });
+
+            const qid = testsession.sessionQuestions;
+
+            const sessionQuestions = await question
+                .find({ _id: { $in: qid } })
+                .select({ _id: 1, options: 1, q: 1 });
+            res.send({
+                questions: sessionQuestions,
+                nQuestions: testsession.qcount,
+                sessionID: sessionID,
+            }).status(200);
+        } else {
+            throw new Error("Question Fetch Failed");
+        }
+    } catch (e) {
+        res.status(500).send("Question Fetch Failed");
         console.log(e);
     }
 });
 
-// ! req.body.answers = "sessionID":"...","answers":[{"id":"..",ans:"..."},{...}]
-// ! By checking auth we will get userEmail
-// ! While sending answers from frontend always send -1 for not selected answers to avoid errors
-
-router.post("/user/submit", async (req, res) => {
-    // ! Fetch answers from frontend
-
+router.post("/user/submit", auth, async (req, res) => {
     try {
-        const answers = req.body.answers;
-        let qid = [];
-        let userAnswers = {};
-        let dataInsertion = []; //userAnswer insertion in sessionData
-        let sessionID = "5f54d5a76454b631e308b295"; // TODO : req.body.sessionID, or token itself
-        let emailID = "n@gmail.com"; //todo will come from token
+        if (!req.admin && req.error === undefined) {
+            const answers = req.body.answers;
+            let qid = [];
+            let userAnswers = {};
+            let dataInsertion = [];
+            let sessionID = req.sessionID;
+            let emailID = req.emailID;
 
-        // ! get data ready by aligning questions and answers
+            console.log(sessionID);
 
-        console.log(req.body);
-        Object.keys(answers).forEach(function (key, index) {
-            // key: the name of the object key
-            // index: the ordinal position of the key within the object
-            qid.push(key);
-            userAnswers[key] = Number(answers[key]);
-            const dataTemp = {};
-            dataTemp.qID = key;
-            dataTemp.userOption = Number(answers[key]);
-            dataInsertion.push(dataTemp);
-        });
+            Object.keys(answers).forEach(function (key, index) {
+                qid.push(key);
+                userAnswers[key] = Number(answers[key]);
+                const dataTemp = {};
+                dataTemp.qID = key;
+                dataTemp.userOption = Number(answers[key]);
+                dataInsertion.push(dataTemp);
+            });
 
-        //! Use array created above to fetch questions
-        const sessionQuestions = await question
-            .find({ _id: { $in: qid } })
-            .select({ _id: 1, answer: 1 });
+            const sessionQuestions = await question
+                .find({ _id: { $in: qid } })
+                .select({ _id: 1, answer: 1 });
 
-        //! calculate the score
-        let score = 0;
-        for (data in sessionQuestions) {
-            if (
-                sessionQuestions[data].answer ===
-                userAnswers[sessionQuestions[data]._id]
-            )
-                score += 100;
+            let score = 0;
+            for (data in sessionQuestions) {
+                if (
+                    sessionQuestions[data].answer ===
+                    userAnswers[sessionQuestions[data]._id]
+                )
+                    score += 100;
+            }
+
+            const dataUser = new sessionData({
+                emailID: emailID,
+                sessionID: sessionID, //
+                data: dataInsertion,
+                score: score,
+            });
+
+            const up = await testSessions.findByIdAndUpdate(
+                { _id: sessionID },
+                { $push: { data: { emailID: emailID, score: score } } }
+            );
+
+            console.log(up);
+
+            await dataUser.save();
+
+            res.status(200).send({ score: score });
+        } else {
+            throw new Error("Submission Failed");
         }
-
-        //! create session data consisting of user answers to all questions
-        const dataUser = new sessionData({
-            emailID: emailID,
-            sessionID: sessionID, //
-            data: dataInsertion,
-            score: score,
-        });
-
-        const up = await testSessions.findByIdAndUpdate(
-            { _id: sessionID },
-            { $push: { data: { emailID: emailID, score: score } } }
-        );
-
-        console.log(up);
-
-        await dataUser.save();
-        /* console.log("This is object of users questions", sessionQuestions);
-        console.log("This is object of users answers", userAnswers);
-        console.log("This is for sessionData", dataUser);
-        console.log("This is dataInsertion", dataInsertion);*/
-
-        res.send({ score: score }).status(200);
     } catch (e) {
-        res.send("Network Error").status(404);
+        res.status(500).send("Submission Failed");
         console.log(e);
     }
 });
