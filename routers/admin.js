@@ -2,6 +2,9 @@ const express = require("express");
 const admin = require("../models/admin");
 const testSessions = require("../models/testSessions");
 const questions = require("../models/questions");
+const xlx = require("node-xlsx");
+const user = require("../models/users");
+const path = require("path");
 
 const router = new express.Router();
 
@@ -56,9 +59,10 @@ router.post("/admin/submitQuestion", async (req, res) => {
     }
 });
 
+//todo: qcount static for now
 router.get("/createSession", async (req, res) => {
     const questionList = await questions.find();
-    const qcount = 10; //todo static for now
+    const qcount = 10;
     const sessionQuestions = [];
     for (q in questionList) {
         sessionQuestions.push(questionList[q]._id);
@@ -69,8 +73,27 @@ router.get("/createSession", async (req, res) => {
     });
     await newSession.save();
 
+    //! Creation of user passwords and logins
+    let path1 = path.join(__dirname, "../public/users");
+    console.log(path1);
+    const userData = xlx.parse(path1);
+
+    let bulkUsers = [];
+
+    let allUsers = userData[0].data;
+    let pwd = "";
+    for (let i in allUsers) {
+        pwd = allUsers[i][0] + "1234";
+        bulkUsers.push({
+            emailID: allUsers[i][0],
+            password: pwd,
+            sessionID: newSession._id,
+        });
+    }
+
+    await user.insertMany(bulkUsers);
+    console.log(bulkUsers);
     console.log(newSession);
-    //todo sessionID storage somewhere
 
     res.send(newSession._id).status(200);
 });

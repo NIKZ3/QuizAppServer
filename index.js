@@ -15,6 +15,9 @@ const app = express();
 
 const port = 3001;
 var urlencodedparser = bodyparser.urlencoded({ extended: true });
+const publicDirectoryPath = path.join(__dirname);
+console.log(publicDirectoryPath);
+app.use("/", express.static(publicDirectoryPath));
 
 app.use(urlencodedparser);
 app.use(express.json());
