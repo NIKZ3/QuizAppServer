@@ -70,6 +70,7 @@ router.post("/user/submit", async (req, res) => {
         let userAnswers = {};
         let dataInsertion = []; //userAnswer insertion in sessionData
         let sessionID = "5f54d5a76454b631e308b295"; // TODO : req.body.sessionID,
+        let emailID = "n@gmail.com"; //todo will come from token
 
         // ! get data ready by aligning questions and answers
 
@@ -102,17 +103,24 @@ router.post("/user/submit", async (req, res) => {
 
         //! create session data consisting of user answers to all questions
         const dataUser = new sessionData({
-            emailID: "n@gmail.com",
+            emailID: emailID,
             sessionID: sessionID, //
             data: dataInsertion,
             score: score,
         });
 
+        const up = await testSessions.findByIdAndUpdate(
+            { _id: sessionID },
+            { $push: { data: { emailID: emailID, score: score } } }
+        );
+
+        console.log(up);
+
         await dataUser.save();
-        console.log("This is object of users questions", sessionQuestions);
+        /* console.log("This is object of users questions", sessionQuestions);
         console.log("This is object of users answers", userAnswers);
         console.log("This is for sessionData", dataUser);
-        console.log("This is dataInsertion", dataInsertion);
+        console.log("This is dataInsertion", dataInsertion);*/
 
         res.send({ score: score }).status(200);
     } catch (e) {
