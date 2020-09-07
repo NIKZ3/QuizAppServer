@@ -31,7 +31,7 @@ router.get("/result", async (req, res) => {
         console.log(e);
     }
 });
-
+// todo :  add isAdmin check and auth middleware
 router.post("/admin/submitQuestion", async (req, res) => {
     try {
         console.log(req.body);
@@ -60,6 +60,7 @@ router.post("/admin/submitQuestion", async (req, res) => {
 });
 
 //todo: qcount static for now
+// todo : add isAdmin check
 router.get("/createSession", async (req, res) => {
     const questionList = await questions.find();
     const qcount = 10;
