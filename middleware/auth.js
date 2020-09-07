@@ -3,13 +3,11 @@ const user = require("../models/users");
 
 const auth = async (req, res, next) => {
     try {
-        // console.log("in");
         const token = req.header("authorization");
-        // console.log(token);
-        console.log(req.header("authorization"));
         const decoded = jwt.verify(token, "user");
         console.log(decoded);
-        req.admin = decoded.admin;
+        if (decoded.admin === true) req.admin = true;
+        else req.admin = false;
         req.sessionID = decoded.sessionID;
         req.emailID = decoded.emailID;
 

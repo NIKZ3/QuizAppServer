@@ -5,6 +5,7 @@ const questions = require("../models/questions");
 const xlx = require("node-xlsx");
 const user = require("../models/users");
 const path = require("path");
+const auth = require("../middleware/auth");
 
 const router = new express.Router();
 
@@ -31,72 +32,85 @@ router.get("/result", async (req, res) => {
         console.log(e);
     }
 });
-// todo :  add isAdmin check and auth middleware
-router.post("/admin/submitQuestion", async (req, res) => {
+
+router.post("/admin/submitQuestion", auth, async (req, res) => {
     try {
-        console.log(req.body);
-        const data = req.body;
-        const options = [];
-        let i = 1;
-        for (op in data.options) {
-            options[i - 1] = { id: i, option: data.options[op].value };
-            i++;
+        if (req.admin && req.error == undefined) {
+            console.log(req.body);
+            const data = req.body;
+            const options = [];
+            let i = 1;
+            for (op in data.options) {
+                options[i - 1] = { id: i, option: data.options[op].value };
+                i++;
+            }
+
+            console.log(options);
+
+            const newQuestion = new questions({
+                q: data.question,
+                options: options,
+                answer: data.ans + 1,
+            });
+            await newQuestion.save();
+
+            res.send("question submitted successfully").status(200);
+        } else {
+            throw new Error("Not authorized");
         }
-
-        console.log(options);
-
-        const newQuestion = new questions({
-            q: data.question,
-            options: options,
-            answer: data.ans + 1,
-        });
-        await newQuestion.save();
-
-        res.send("question submitted successfully").status(200);
     } catch (e) {
-        res.send("Something went wrong").status(404);
+        res.status(403).send("Question Submission Failed");
         console.log(e);
     }
 });
 
 //todo: qcount static for now
-// todo : add isAdmin check
-router.get("/createSession", async (req, res) => {
-    const questionList = await questions.find();
-    const qcount = 10;
-    const sessionQuestions = [];
-    for (q in questionList) {
-        sessionQuestions.push(questionList[q]._id);
+
+router.get("/createSession", auth, async (req, res) => {
+    try {
+        if (req.admin && req.error == undefined) {
+            const questionList = await questions.find();
+            const qcount = 10;
+            const sessionQuestions = [];
+            for (q in questionList) {
+                sessionQuestions.push(questionList[q]._id);
+            }
+            const newSession = new testSessions({
+                sessionQuestions: sessionQuestions,
+                qcount: qcount,
+            });
+            await newSession.save();
+
+            //! Creation of user passwords and logins
+            let path1 = path.join(__dirname, "../public/users");
+            console.log(path1);
+            const userData = xlx.parse(path1);
+
+            let bulkUsers = [];
+
+            let allUsers = userData[0].data;
+            let pwd = "";
+            for (let i in allUsers) {
+                pwd = allUsers[i][0] + "1234";
+                bulkUsers.push({
+                    emailID: allUsers[i][0],
+                    password: pwd,
+                    sessionID: newSession._id,
+                });
+            }
+
+            await user.insertMany(bulkUsers);
+            console.log(bulkUsers);
+            console.log(newSession);
+
+            res.status(200).send(newSession._id);
+        } else {
+            throw new Error("Session creation failed");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(403).send("Authorization failed");
     }
-    const newSession = new testSessions({
-        sessionQuestions: sessionQuestions,
-        qcount: qcount,
-    });
-    await newSession.save();
-
-    //! Creation of user passwords and logins
-    let path1 = path.join(__dirname, "../public/users");
-    console.log(path1);
-    const userData = xlx.parse(path1);
-
-    let bulkUsers = [];
-
-    let allUsers = userData[0].data;
-    let pwd = "";
-    for (let i in allUsers) {
-        pwd = allUsers[i][0] + "1234";
-        bulkUsers.push({
-            emailID: allUsers[i][0],
-            password: pwd,
-            sessionID: newSession._id,
-        });
-    }
-
-    await user.insertMany(bulkUsers);
-    console.log(bulkUsers);
-    console.log(newSession);
-
-    res.send(newSession._id).status(200);
 });
 
 module.exports = router;

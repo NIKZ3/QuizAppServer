@@ -43,7 +43,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/user/questions", auth, async (req, res) => {
     try {
-        if (!req.admin && req.error === undefined) {
+        if (!req.admin && req.error == undefined) {
             const sessionID = req.sessionID;
             const testsession = await testSessions.findOne({ _id: sessionID });
 
@@ -68,7 +68,7 @@ router.get("/user/questions", auth, async (req, res) => {
 
 router.post("/user/submit", auth, async (req, res) => {
     try {
-        if (!req.admin && req.error === undefined) {
+        if (!req.admin && req.error == undefined) {
             const answers = req.body.answers;
             let qid = [];
             let userAnswers = {};
