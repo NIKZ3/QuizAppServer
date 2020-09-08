@@ -5,7 +5,7 @@ const auth = async (req, res, next) => {
     try {
         const token = req.header("authorization");
         const decoded = jwt.verify(token, "user");
-        console.log(decoded);
+
         if (decoded.admin === true) req.admin = true;
         else req.admin = false;
         req.sessionID = decoded.sessionID;

@@ -116,6 +116,7 @@ router.post("/user/submit", auth, async (req, res) => {
 
             await dataUser.save();
 
+            await user.deleteOne({ emailID: emailID });
             res.status(200).send({ score: score });
         } else {
             throw new Error("Submission Failed");

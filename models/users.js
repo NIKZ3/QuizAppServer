@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
     loginState: { type: Boolean, default: false },
     sessionID: { type: String },
     admin: { type: Boolean, default: false },
+    sessions: [{ state: false, id: String }],
     token: { type: String },
 });
 
