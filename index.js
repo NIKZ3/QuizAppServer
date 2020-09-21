@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const adminRouter = require("./routers/admin");
 const userRouter = require("./routers/user");
 const cors = require("cors");
+const userCodes = require("./routers/usercode");
 //const session = require("express-session");
 //const mongostore = require("connect-mongo")(session);
 
@@ -25,6 +26,7 @@ app.use(cookieParser());
 app.use(cors());
 app.use(adminRouter);
 app.use(userRouter);
+app.use(userCodes);
 app.listen(port, () => {
     console.log("Server running on port" + port);
 });
