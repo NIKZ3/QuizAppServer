@@ -35,6 +35,7 @@ with open(userFileLocation + '/temp.cpp', 'w+') as fp:
 
 codetorun = userFileLocation + '/temp.cpp'
 exe =  userFileLocation + '/exe'
+#print(codetorun)
 compile_code = os.system(
     "g++ -o" +exe +" "+  codetorun+" "+ "-lseccomp -lm")
 
@@ -42,7 +43,6 @@ compile_code = os.system(
 # prepare input output pipes to run process
 opf = open(userFileLocation + "/o.txt", "w+")
 errf = open(userFileLocation + "/e.txt", "w+")
-ipf = open(userFileLocation + "/t.txt", "r")
 exec_path = userFileLocation + "/exe"
 
 initialize_quota()
