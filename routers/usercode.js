@@ -1,6 +1,8 @@
 const express = require("express");
 const { spawn } = require("child_process");
 const fs = require("fs");
+const codeQuestion = require("../models/codeQuestion");
+const codeSession = require("../models/codeSession");
 
 const router = new express.Router();
 
@@ -15,15 +17,48 @@ const codes = {
     wa: "WA",
 };
 
+router.post("/addCodeQuestion", async (req, res) => {
+    const question = req.body.question;
+    const qid = req.body.qid;
+    const tcnt = req.body.tcnt;
+    const cq = new codeQuestion({ q: question, qid: qid, tcnt: tcnt });
+    await cq.save();
+    res.status(200).send("Question SAved");
+});
+
+router.post("/codeSession", async (req, res) => {
+    const q = req.body.questions;
+
+    const session = new codeSession({ sessionQuestions: q, qcount: 1 });
+    await session.save();
+    res.status(200).send("Session Created");
+});
+
+router.get("/getQuestion", async (req, res) => {
+    const userID = "ngawade911@gmail.com"; //!get from token
+    const sessionID = "5f6962d7a5fbf018dcc7248f"; //!get from token
+
+    const session = await codeSession.find({ _id: sessionID });
+
+    const questionList = session[0].sessionQuestions;
+
+    const question = await codeQuestion.findOne({ qid: questionList[0] }); //!use this with list instead of 0
+
+    console.log(question);
+    res.send({ question: question });
+});
+
 //! Modify dir_name according to your pc
 //! also in python script change path to questions to run everything properly
 router.post("/submitCode", async (req, res) => {
     try {
+        const userID = "ngawade911@gmail.com"; //!get from token
+        const sessionID = "5f6962d7a5fbf018dcc7248f"; //!get from token
         var dataToSend; //Data that we get back from process
         const dir_name = "/home/nikhil";
         const emailID = "ngawade911@gmail.com";
-        const qid = "q1";
-        const qcnt = 2;
+        const qid = "q1"; //!qid has to be extracted either from database or token
+        const qcnt = 2; //!Get from database
         const dir =
             dir_name +
             "/Quizapp/quizappserver/userCodes/" +
@@ -45,10 +80,12 @@ router.post("/submitCode", async (req, res) => {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir);
         }
-        // console.log(dir);
-        // console.log(userRoot);
 
-        console.log(pyscript, dir);
+        //Initially Copy code to the buffer
+        const userCodeFile = dir + "/" + "1.cpp";
+        console.log(userCodeFile);
+        fs.writeFileSync(userCodeFile, req.body.code);
+
         //Pass cmd args test case path and user output path and test case count
         const python = spawn("python", [
             pyscript,
@@ -68,7 +105,8 @@ router.post("/submitCode", async (req, res) => {
             console.log(`child process close all stdio with code ${code}`);
 
             console.log(dataToSend);
-            var rc = dataToSend.split("\n");
+            if (dataToSend === undefined) var rc = [256];
+            else var rc = dataToSend.split("\n");
 
             var res_obj = {};
             if (rc[0] == 256 || rc[0] == 159) {
@@ -76,6 +114,7 @@ router.post("/submitCode", async (req, res) => {
                     const testcase = "t" + (i + 1);
                     res_obj[testcase] = "Compile_Error";
                 }
+                updateScore(emailID, 0, sessionID);
                 res.send(res_obj);
             }
 
@@ -116,6 +155,7 @@ router.post("/submitCode", async (req, res) => {
                             //cnt handles asynchrouns file check
                             if (cnt == qcnt) {
                                 res_obj["score"] = score;
+                                updateScore(emailID, score, sessionID);
                                 res.status(200).send(res_obj);
                             }
                         });
@@ -130,5 +170,31 @@ router.post("/submitCode", async (req, res) => {
         res.send("error");
     }
 });
+
+//Utility function to update scores in database
+const updateScore = async (emailID, score, sessionID) => {
+    const session = await codeSession.findOne({ _id: sessionID });
+    let score1 = session.data;
+    let flag = 0;
+    for (let i in score1) {
+        if (score1[i].emailID == emailID) {
+            if (score1[i].score > score) {
+                flag = 1;
+                break; //If previous submission score was higher keep that score
+            }
+            score1[i].score = score;
+            flag = 1;
+            break;
+        }
+    }
+    if (flag == 1) {
+        session.data = score1;
+        await session.save();
+    } else {
+        score1.push({ emailID: emailID, score: score });
+        session.data = score1;
+        await session.save();
+    }
+};
 
 module.exports = router;

@@ -18,7 +18,7 @@ def setlimits():
 userFileLocation = sys.argv[1]  # "/home/nikhil/C++"  # sys.argv[1]
 f = open(userFileLocation+"/1.cpp", "r")
 content = f.read()
-content = "#include" + '"' + "myseccomp.h" + '"' + content
+content = "#include" + '"' + "myseccomp.h" + '"'+ '\n' + content
 
 split_data = content.split('main')
 before_main = split_data[0] + 'main'
@@ -38,6 +38,7 @@ exe =  userFileLocation + '/exe'
 #print(codetorun)
 compile_code = os.system(
     "g++ -o" +exe +" "+  codetorun+" "+ "-lseccomp -lm")
+
 
 
 # prepare input output pipes to run process

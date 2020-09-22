@@ -6,8 +6,12 @@ int main()
 {install_filters();
 
 
-        string s;
+   
+        string s;string g;
     cin >> s;
     cout << s << endl;
     //system("mkdir yooboy");
 }
+
+
+
