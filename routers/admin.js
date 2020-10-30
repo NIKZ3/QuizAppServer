@@ -10,6 +10,8 @@ const multer = require("multer");
 const os = require("os");
 const uniqueFilename = require("unique-filename");
 const nodemailer = require("nodemailer");
+const codeQuestion = require("../models/codeQuestion");
+const fs = require("fs");
 
 const router = new express.Router();
 
@@ -32,7 +34,7 @@ router.get("/result", async (req, res) => {
         console.log(testResultData);
         res.send({ testResultData }).status(200);
     } catch (e) {
-        res.send("Something went wrong").status(404);
+        res.send("Something went wrong").status(500);
         console.log(e);
     }
 });
@@ -60,10 +62,10 @@ router.post("/admin/submitQuestion", auth, async (req, res) => {
 
             res.send("question submitted successfully").status(200);
         } else {
-            throw new Error("Not authorized");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
-        res.status(403).send("Question Submission Failed");
+        res.status(500).send("Something went wrong");
         console.log(e);
     }
 });
@@ -83,11 +85,11 @@ router.get("/getMySessions", auth, async (req, res) => {
 
             res.status(200).send(allIDs);
         } else {
-            throw new Error("Error");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
         console.log(e);
-        res.status(403).send("Error");
+        res.status(500).send("Something went wrong");
     }
 });
 
@@ -116,10 +118,10 @@ router.post("/sessionActivation", auth, async (req, res) => {
             console.log(tempuser);
             res.status(200).send("Activated");
         } else {
-            throw new Error("Error");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
-        res.status(403).send("Error");
+        res.status(500).send("Something went wrong");
     }
 });
 
@@ -164,6 +166,7 @@ router.post("/createSession", auth, async (req, res) => {
                     const newSession = new testSessions({
                         sessionQuestions: sessionQuestions,
                         qcount: qcount,
+                        testType: "code",
                     });
                     await newSession.save();
                     console.log(newSession);
@@ -180,6 +183,7 @@ router.post("/createSession", auth, async (req, res) => {
                             emailID: allUsers[i][0],
                             password: pwd,
                             sessionID: newSession._id,
+                            testType: "quiz",
                         });
                     }
 
@@ -215,11 +219,110 @@ router.post("/createSession", auth, async (req, res) => {
                 }
             });
         } else {
-            throw new Error("Session creation failed");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
         console.log(e);
-        res.status(403).send("Authorization failed");
+        res.status(500).send("Something went wrong");
+    }
+});
+
+//Route for session of coding questions
+
+router.post("/createCodeSession", auth, async (req, res) => {
+    try {
+        if (req.admin && req.error == undefined) {
+            upload(req, res, async (err) => {
+                if (err instanceof multer.MulterError) {
+                    console.log("==========");
+                    let err = new Error("File Upload Error/Server");
+                    err.status = 500;
+                    console.log(err);
+                    res.statusCode = 500;
+                    res.send({ err: err });
+                } else if (req.file === undefined) {
+                    res.statusCode = 404;
+                    res.setHeader("Content-Type", "application/json");
+                    res.send({ code: 404, message: "File not found" });
+                } else {
+                    const questionList = await codeQuestion.find();
+                    const qcount = 1;
+                    const sessionQuestions = [];
+                    for (q in questionList) {
+                        sessionQuestions.push(questionList[q].qid);
+                        break;
+                    }
+                    const newSession = new testSessions({
+                        sessionQuestions: sessionQuestions,
+                        qcount: qcount,
+                        testType: "code",
+                    });
+                    await newSession.save();
+                    const sessionID = newSession._id;
+                    const dir_name = "/home/nikhil";
+                    const dir =
+                        dir_name +
+                        "/Quizapp/quizappserver/userCodes/" +
+                        sessionID;
+
+                    fs.mkdirSync(dir);
+
+                    console.log(newSession);
+                    const userData = xlx.parse(req.file.path);
+
+                    let bulkUsers = [];
+
+                    let allUsers = userData[0].data;
+
+                    for (let i in allUsers) {
+                        let pwd = uniqueFilename("");
+
+                        bulkUsers.push({
+                            emailID: allUsers[i][0],
+                            password: pwd,
+                            sessionID: newSession._id,
+                            testType: "code",
+                        });
+                    }
+
+                    await user.insertMany(bulkUsers);
+                    bulkUsers.forEach((_user) => {
+                        console.log(
+                            _user.emailID,
+                            _user.password,
+                            _user.sessionID
+                        );
+                        mail(_user.emailID, _user.password, _user.sessionID);
+                    });
+
+                    const emailID = req.emailID;
+
+                    const tempsessionID = newSession._id.toString();
+
+                    const up = await user.findOneAndUpdate(
+                        { emailID: emailID },
+                        {
+                            $push: {
+                                sessions: { state: false, id: tempsessionID },
+                            },
+                        }
+                    );
+
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "application/json");
+                    res.send({
+                        code: 200,
+                        message: "Sessions created successfully",
+                    });
+                }
+            });
+        } else {
+            console.log("YOO");
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
     }
 });
 

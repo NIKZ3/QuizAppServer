@@ -18,7 +18,8 @@ def setlimits():
 userFileLocation = sys.argv[1]  # "/home/nikhil/C++"  # sys.argv[1]
 f = open(userFileLocation+"/1.cpp", "r")
 content = f.read()
-content = "#include" + '"' + "myseccomp.h" + '"'+ '\n' + content
+#Specify path of seccomp properly
+content = "#include" + '"' + "/home/nikhil/Quizapp/quizappserver/userCodes/seccomp/myseccomp.h" + '"'+ '\n' + content
 
 split_data = content.split('main')
 before_main = split_data[0] + 'main'

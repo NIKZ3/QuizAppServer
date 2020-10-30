@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
     admin: { type: Boolean, default: false },
     sessions: [{ state: false, id: String }],
     token: { type: String },
+    testType: { type: String },
 });
 
 userSchema.methods.generateAuthToken = async function () {

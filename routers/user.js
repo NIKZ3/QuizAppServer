@@ -31,13 +31,17 @@ router.post("/login", async (req, res) => {
         if (user1.password == req.body.password) {
             const token = await user1.generateAuthToken();
             console.log("Request received");
-            res.send({ token: token, isAdmin: user1.admin });
+            res.send({
+                testType: user1.testType,
+                token: token,
+                isAdmin: user1.admin,
+            });
         } else {
             res.status(403).send("Login denied");
         }
     } catch (e) {
         console.log(e);
-        res.status(403).send("Login Failed");
+        res.status(500).send("Something went wrong");
     }
 });
 
@@ -58,10 +62,10 @@ router.get("/user/questions", auth, async (req, res) => {
                 sessionID: sessionID,
             }).status(200);
         } else {
-            throw new Error("Question Fetch Failed");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
-        res.status(500).send("Question Fetch Failed");
+        res.status(500).send("Something went wrong");
         console.log(e);
     }
 });
@@ -119,10 +123,10 @@ router.post("/user/submit", auth, async (req, res) => {
             await user.deleteOne({ emailID: emailID });
             res.status(200).send({ score: score });
         } else {
-            throw new Error("Submission Failed");
+            res.status(401).send("Unauthorized");
         }
     } catch (e) {
-        res.status(500).send("Submission Failed");
+        res.status(500).send("Something went wrong");
         console.log(e);
     }
 });

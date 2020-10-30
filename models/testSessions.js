@@ -8,6 +8,7 @@ const testSessionSchema = new mongoose.Schema({
     sessionQuestions: [String], //Array of StringIDs
     data: [{ emailID: String, score: Number }],
     qcount: { type: Number },
+    testType: { type: String },
 });
 
 const testSessions = mongoose.model("testSessionSchema", testSessionSchema);
