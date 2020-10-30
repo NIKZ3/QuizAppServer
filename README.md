@@ -1,6 +1,9 @@
 # QUODE
-###### An App for coding Tests and Quiz Tests
 
+## TECH STACK:- React.JS,Node.JS,ReactStrap(Creative Tim),MongoDB,Express.JS
+
+###### An App for coding Tests and Quiz Tests
+ 
 The Quiz portal has implementation of Quiz app and admin Question Submission <br />
 
 The coding portal consists of implementation of minimal sandbox using Seccomp and Python Resources Library.<br />
@@ -19,3 +22,12 @@ Initially admin can send excel file with selection whether to conduct coding tes
 Then users can login and solve the test.<br />
 Questions can be submitted through Question Submission Hub by only admin. <br />
 Results can be viewed through Result hub by entering sessionID which is provided when a user logins.<br />
+## Screenshots
+![alt text](screenshots/coding.png "Coding Page")
+![alt text](screenshots/coding1.png "Coding Page")
+![alt text](screenshots/coding2.png "Coding Page")
+![alt text](screenshots/login.png "Login Page")
+![alt text](screenshots/questionsubmission.png "Question Submission Hub")
+![alt text](screenshots/coding2.png "Coding Page")
+![alt text](screenshots/quiz1.png "Quiz Page")
+![alt text](screenshots/results.png "Results Page")
