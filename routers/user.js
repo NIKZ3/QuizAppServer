@@ -54,10 +54,12 @@ router.get("/user/questions", auth, async (req, res) => {
             const sessionQuestions = await question
                 .find({ _id: { $in: qid } })
                 .select({ _id: 1, options: 1, q: 1 });
+            const user1 = await user.findOne({ emailID: req.emailID });
             res.send({
                 questions: sessionQuestions,
                 nQuestions: testsession.qcount,
                 sessionID: sessionID,
+                userState: user1.state,
             }).status(200);
         } else {
             res.status(401).send("Unauthorized");
