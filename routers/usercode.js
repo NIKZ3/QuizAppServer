@@ -5,6 +5,7 @@ const codeQuestion = require("../models/codeQuestion");
 const codeSession = require("../models/codeSession");
 const session = require("../models/testSessions");
 const auth = require("../middleware/auth");
+const users = require("../models/users");
 
 const router = new express.Router();
 
@@ -41,9 +42,8 @@ router.get("/getQuestion", auth, async (req, res) => {
             const question = await codeQuestion.findOne({
                 qid: questionList[0],
             });
-
-            console.log(question);
-            res.send({ question: question });
+            const user1 = await users.findOne({ emailID: req.emailID });
+            res.send({ userState: user1.state, question: question });
         } else {
             res.status(401).send("Unauthorized");
         }
@@ -64,7 +64,7 @@ router.post("/submitCode", auth, async (req, res) => {
             const dir_name = "/home/nikhil";
             const emailID = userID;
             const sessionInfo = await session.findOne({ _id: sessionID });
-            console.log(sessionInfo);
+
             const qid = sessionInfo.sessionQuestions[0];
 
             const question1 = await codeQuestion.findOne({ qid: qid });
@@ -101,21 +101,21 @@ router.post("/submitCode", auth, async (req, res) => {
 
             //Initially Copy code to the buffer
             const userCodeFile = dir + "/" + "1.cpp";
-            console.log(userCodeFile);
+
             fs.writeFileSync(userCodeFile, req.body.code);
 
             //Pass cmd args test case path and user output path and test case count
             const python = spawn("python", [pyscript, dir, qid, qcnt]);
             python.stdout.on("data", function (data) {
-                console.log("Pipe data from python script ...");
+                // console.log("Pipe data from python script ...");
 
                 dataToSend = data.toString();
             });
 
             python.on("close", (code) => {
-                console.log(`child process close all stdio with code ${code}`);
+                //  console.log(`child process close all stdio with code ${code}`);
 
-                console.log(dataToSend);
+                //  console.log(dataToSend);
                 if (dataToSend === undefined) var rc = [256];
                 else var rc = dataToSend.split("\n");
 

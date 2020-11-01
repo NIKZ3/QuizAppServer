@@ -10,20 +10,21 @@ const userSchema = new mongoose.Schema({
     sessions: [{ state: false, id: String }],
     token: { type: String },
     testType: { type: String },
+    state: { type: String, default: "N" },
 });
 
 userSchema.methods.generateAuthToken = async function () {
     const user = this;
     let token;
     if (user.admin) {
-        console.log("admin");
+        //console.log("admin");
         token = jwt.sign(
             { emailID: user.emailID, sessionID: user.sessionID, admin: true },
             "user"
         );
         user.token = token;
     } else {
-        console.log("Not admin");
+        //console.log("Not admin");
         token = jwt.sign(
             { emailID: user.emailID, sessionID: user.sessionID, admin: false },
             "user"
@@ -32,7 +33,7 @@ userSchema.methods.generateAuthToken = async function () {
     }
 
     await user.save();
-    console.log(token);
+
     return token;
 };
 

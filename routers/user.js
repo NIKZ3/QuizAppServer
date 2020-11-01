@@ -26,11 +26,9 @@ router.post("/login", async (req, res) => {
     try {
         const user1 = await user.findOne({ emailID: req.body.emailID });
 
-        console.log(user1);
-        console.log(req.body);
         if (user1.password == req.body.password) {
             const token = await user1.generateAuthToken();
-            console.log("Request received");
+
             res.send({
                 testType: user1.testType,
                 token: token,
@@ -128,6 +126,39 @@ router.post("/user/submit", auth, async (req, res) => {
     } catch (e) {
         res.status(500).send("Something went wrong");
         console.log(e);
+    }
+});
+// Api to save state of user
+router.post("/stateSave", auth, async (req, res) => {
+    try {
+        if (!req.admin && req.error == undefined) {
+            // console.log(req.body.state);
+            const state = req.body.state;
+            const emailID = req.emailID;
+
+            const user1 = await user.findOne({ emailID: emailID });
+            const state1 = user1.state;
+
+            if (state1 != "N") {
+                const prev_state = JSON.parse(state1);
+                if (state.time > prev_state.time) {
+                    res.status(200).send("cheat"); //In case user has made changes in timing
+                } else {
+                    user1.state = JSON.stringify(state);
+                    await user1.save();
+                    res.status(200).send("ok");
+                }
+            } else {
+                user1.state = JSON.stringify(state);
+                await user1.save();
+                res.status(200).send("ok");
+            }
+        } else {
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
     }
 });
 
