@@ -16,11 +16,54 @@ const fs = require("fs");
 const router = new express.Router();
 
 router.get("/", async (req, res) => {
-    const test = new admin({ name: "NIKHIL", password: "Password" });
+    const test = new admin({ emailID: "nikhil", password: "nikhil" });
 
     await test.save();
 
     res.send("Done");
+});
+
+router.post("/getUser", auth, async (req, res) => {
+    try {
+        console.log(req.admin, req.error);
+        if (req.admin && req.error == undefined) {
+            const user1 = await user.findOne({ emailID: req.body.emailID });
+            if (user1 != null) {
+                res.status(200).send({
+                    emailID: user1.emailID,
+                    loginState: user1.loginState,
+                });
+            } else {
+                res.status(200).send("N");
+            }
+        } else {
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
+    }
+});
+
+router.post("/admin/login", async (req, res) => {
+    try {
+        console.log(req.body);
+        const user1 = await admin.findOne({ emailID: req.body.emailID });
+
+        if (user1.password == req.body.password) {
+            const token = await user1.generateAuthToken();
+
+            res.send({
+                token: token,
+                isAdmin: true,
+            });
+        } else {
+            res.status(401).send("Login denied");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
+    }
 });
 
 router.get("/result", async (req, res) => {
@@ -73,7 +116,7 @@ router.post("/admin/submitQuestion", auth, async (req, res) => {
 router.get("/getMySessions", auth, async (req, res) => {
     try {
         if (req.admin && req.error == undefined) {
-            const tempUser = await user.findOne({ emailID: req.emailID });
+            const tempUser = await admin.findOne({ emailID: req.emailID });
             const tempsessions = tempUser.sessions;
 
             // console.log(tempUser);
@@ -95,7 +138,6 @@ router.get("/getMySessions", auth, async (req, res) => {
 
 router.post("/sessionActivation", auth, async (req, res) => {
     try {
-        console.log("YOO");
         if (req.admin && req.error == undefined) {
             const emailID = req.emailID;
             const sessionID = req.body.SessionID;
@@ -104,7 +146,7 @@ router.post("/sessionActivation", auth, async (req, res) => {
                 { sessionID: sessionID },
                 { loginState: true }
             );
-            const tempuser = await user.findOne({ emailID: emailID });
+            const tempuser = await admin.findOne({ emailID: emailID });
 
             const tempsessions = tempuser.sessions;
             for (let i in tempsessions) {
@@ -166,7 +208,7 @@ router.post("/createSession", auth, async (req, res) => {
                     const newSession = new testSessions({
                         sessionQuestions: sessionQuestions,
                         qcount: qcount,
-                        testType: "code",
+                        testType: "quiz",
                     });
                     await newSession.save();
                     console.log(newSession);
@@ -201,7 +243,7 @@ router.post("/createSession", auth, async (req, res) => {
 
                     const tempsessionID = newSession._id.toString();
 
-                    const up = await user.findOneAndUpdate(
+                    const up = await admin.findOneAndUpdate(
                         { emailID: emailID },
                         {
                             $push: {
@@ -285,7 +327,7 @@ router.post("/createCodeSession", auth, async (req, res) => {
                         });
                     }
 
-                    await user.insertMany(bulkUsers);
+                    await admin.insertMany(bulkUsers);
                     bulkUsers.forEach((_user) => {
                         console.log(
                             _user.emailID,
@@ -317,7 +359,6 @@ router.post("/createCodeSession", auth, async (req, res) => {
                 }
             });
         } else {
-            console.log("YOO");
             res.status(401).send("Unauthorized");
         }
     } catch (e) {
