@@ -23,6 +23,25 @@ router.get("/", async (req, res) => {
     res.send("Done");
 });
 
+router.post("/activateUser", auth, async (req, res) => {
+    try {
+        if (req.admin && req.error == undefined) {
+            const emailID = req.body.emailID;
+
+            await user.findOneAndUpdate(
+                { emailID: emailID },
+                { loginState: true }
+            );
+            res.status(200).send("User Activated");
+        } else {
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
+    }
+});
+
 router.post("/getUser", auth, async (req, res) => {
     try {
         console.log(req.admin, req.error);

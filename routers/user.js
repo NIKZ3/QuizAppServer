@@ -26,9 +26,13 @@ router.post("/login", async (req, res) => {
     try {
         const user1 = await user.findOne({ emailID: req.body.emailID });
 
-        if (user1.password == req.body.password) {
+        if (user1.password == req.body.password && user1.loginState == true) {
             const token = await user1.generateAuthToken();
 
+            user.findByIdAndUpdate(
+                { emailID: req.body.emailID },
+                { loginState: false }
+            );
             res.send({
                 testType: user1.testType,
                 token: token,
