@@ -22,6 +22,27 @@ router.get("/user", auth, async (req, res) => {
     }
 });
 
+router.get("/logout", auth, async (req, res) => {
+    try {
+        if (req.admin == true) {
+            const user1 = await admin.findOne({ emailID: req.emailID });
+            user1.token = "";
+            await user1.save();
+            res.status(200).send("Logout Success");
+        } else if (req.admin == false) {
+            const user1 = await user.findOne({ emailID: req.emailID });
+            user1.token = "";
+            await user1.save();
+            res.status(200).send("Logout Success");
+        } else {
+            res.status(200).send("Logout Failed");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
+    }
+});
+
 router.post("/login", async (req, res) => {
     try {
         const user1 = await user.findOne({ emailID: req.body.emailID });
@@ -64,6 +85,7 @@ router.get("/user/questions", auth, async (req, res) => {
                 nQuestions: testsession.qcount,
                 sessionID: sessionID,
                 userState: user1.state,
+                time: testsession.time,
             }).status(200);
         } else {
             res.status(401).send("Unauthorized");

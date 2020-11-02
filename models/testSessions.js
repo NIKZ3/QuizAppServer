@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 //_ID OF THIS SCHEMA is our sessionID
 
 const testSessionSchema = new mongoose.Schema({
-    time: { type: String },
+    time: { type: Number },
     date: { type: String },
     sessionQuestions: [String], //Array of StringIDs
     data: [{ emailID: String, score: Number }],

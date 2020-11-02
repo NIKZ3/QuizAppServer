@@ -19,7 +19,9 @@ userFileLocation = sys.argv[1]  # "/home/nikhil/C++"  # sys.argv[1]
 f = open(userFileLocation+"/1.cpp", "r")
 content = f.read()
 #Specify path of seccomp properly
-content = "#include" + '"' + "/home/nikhil/Quizapp/quizappserver/userCodes/seccomp/myseccomp.h" + '"'+ '\n' + content
+dir_name = sys.argv[4]
+content = "#include" + '"' +dir_name+ "userCodes/seccomp/myseccomp.h" + '"'+ '\n' + content
+#content = "#include" + '"' + "/home/nikhil/Quizapp/quizappserver/userCodes/seccomp/myseccomp.h" + '"'+ '\n' + content
 
 split_data = content.split('main')
 before_main = split_data[0] + 'main'
@@ -57,7 +59,8 @@ data=''
 
 for x in range(int(qcnt)):
     
-    input_path = "/home/nikhil/Quizapp/quizappserver/questions/"+qid +"/t{}.txt".format(x+1)
+    #input_path = "/home/nikhil/Quizapp/quizappserver/questions/"+qid +"/t{}.txt".format(x+1)
+    input_path = dir_name+"questions/"+qid +"/t{}.txt".format(x+1)
     output_path = userFileLocation + "/o{}.txt".format(x+1)
     error_path = userFileLocation + "/e{}.txt".format(x+1)
         

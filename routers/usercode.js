@@ -6,6 +6,7 @@ const codeSession = require("../models/codeSession");
 const session = require("../models/testSessions");
 const auth = require("../middleware/auth");
 const users = require("../models/users");
+const path = require("path");
 
 const router = new express.Router();
 
@@ -19,6 +20,12 @@ const codes = {
     137: "TLE",
     wa: "WA",
 };
+
+router.get("/test", async (req, res) => {
+    console.log(path.join(__dirname, "../"));
+
+    res.send("ok");
+});
 
 router.post("/addCodeQuestion", async (req, res) => {
     const question = req.body.question;
@@ -61,7 +68,7 @@ router.post("/submitCode", auth, async (req, res) => {
             const userID = req.emailID;
             const sessionID = req.sessionID;
             var dataToSend; //Data that we get back from process
-            const dir_name = "/home/nikhil";
+            const dir_name = path.join(__dirname, "../"); // /home/nikhil
             const emailID = userID;
             const sessionInfo = await session.findOne({ _id: sessionID });
 
@@ -72,7 +79,7 @@ router.post("/submitCode", auth, async (req, res) => {
             const qcnt = question1.tcnt; //Testcase Count for that question
             const dir =
                 dir_name +
-                "/Quizapp/quizappserver/userCodes/" +
+                "userCodes/" /*"/Quizapp/quizappserver/userCodes/" +*/ +
                 sessionID +
                 "/" +
                 emailID +
@@ -80,15 +87,18 @@ router.post("/submitCode", auth, async (req, res) => {
                 qid;
             const userRoot =
                 dir_name +
-                "/Quizapp/quizappserver/userCodes/" +
+                "userCodes/" /*"/Quizapp/quizappserver/userCodes/" +*/ +
                 sessionID +
                 "/" +
                 emailID;
             const pyscript =
-                dir_name + "/Quizapp/quizappserver/userCodes/python/test.py";
+                dir_name +
+                "userCodes/python/test.py"; /*"/Quizapp/quizappserver/userCodes/python/test.py";*/
             var rc; //rc holds status codes for all the test cases
             const testcase_path =
-                dir_name + "/Quizapp/quizappserver/questions/" + qid;
+                dir_name +
+                "questions/" /*"/Quizapp/quizappserver/questions/"*/ +
+                qid;
             var score = 0;
 
             // console.log(userRoot);
@@ -105,7 +115,13 @@ router.post("/submitCode", auth, async (req, res) => {
             fs.writeFileSync(userCodeFile, req.body.code);
 
             //Pass cmd args test case path and user output path and test case count
-            const python = spawn("python", [pyscript, dir, qid, qcnt]);
+            const python = spawn("python", [
+                pyscript,
+                dir,
+                qid,
+                qcnt,
+                dir_name,
+            ]);
             python.stdout.on("data", function (data) {
                 // console.log("Pipe data from python script ...");
 

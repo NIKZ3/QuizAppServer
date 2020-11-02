@@ -12,6 +12,9 @@ const uniqueFilename = require("unique-filename");
 const nodemailer = require("nodemailer");
 const codeQuestion = require("../models/codeQuestion");
 const fs = require("fs");
+const { findOneAndDelete } = require("../models/codeQuestion");
+const { exec } = require("child_process");
+//const rimraf = require("rimraf");
 
 const router = new express.Router();
 
@@ -141,11 +144,52 @@ router.get("/getMySessions", auth, async (req, res) => {
             // console.log(tempUser);
             const allIDs = [];
             for (let i in tempsessions) {
-                if (tempsessions[i].state === false)
-                    allIDs.push(tempsessions[i].id);
+                //if (tempsessions[i].state === false)
+                allIDs.push(tempsessions[i].id);
             }
 
             res.status(200).send(allIDs);
+        } else {
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something went wrong");
+    }
+});
+
+router.post("/sessionDeactivation", auth, async (req, res) => {
+    try {
+        if (req.admin && req.error == undefined) {
+            console.log(req.body.SessionID);
+            if (req.body.SessionID != null && req.body.SessionID != undefined) {
+                const dir = path.join(__dirname, "../userCodes");
+                const dir1 = path.join(dir, String(req.body.SessionID));
+
+                await testSessions.findOneAndDelete({
+                    _id: req.body.SessionID,
+                });
+
+                await user.deleteMany({ sessionID: req.body.SessionID });
+
+                if (fs.existsSync(dir1)) {
+                    const cmd = "rm -rf" + " " + dir1;
+                    console.log(dir1);
+                    exec(cmd, (error, stdout, stderr) => {
+                        if (error) {
+                            console.log(`error: ${error.message}`);
+                        }
+                        if (stderr) {
+                            console.log(`stderr: ${stderr}`);
+                        }
+                        //console.log("success")
+                    });
+                }
+
+                res.status(200).send("success");
+            } else {
+                res.status(200).send("No such sessions");
+            }
         } else {
             res.status(401).send("Unauthorized");
         }
@@ -224,8 +268,10 @@ router.post("/createSession", auth, async (req, res) => {
                     for (q in questionList) {
                         sessionQuestions.push(questionList[q]._id);
                     }
+                    //console.log("body", req.body);
                     const newSession = new testSessions({
                         sessionQuestions: sessionQuestions,
+                        time: parseInt(req.body.time),
                         qcount: qcount,
                         testType: "quiz",
                     });
@@ -271,6 +317,7 @@ router.post("/createSession", auth, async (req, res) => {
                         }
                     );
 
+                    cleanup();
                     res.statusCode = 200;
                     res.setHeader("Content-Type", "application/json");
                     res.send({
@@ -320,11 +367,15 @@ router.post("/createCodeSession", auth, async (req, res) => {
                     });
                     await newSession.save();
                     const sessionID = newSession._id;
-                    const dir_name = "/home/nikhil";
+                    console.log("YOO", sessionID);
+                    const dir_name = path.join(
+                        __dirname,
+                        "../"
+                    ); /*"/home/nikhil"*/
                     const dir =
                         dir_name +
-                        "/Quizapp/quizappserver/userCodes/" +
-                        sessionID;
+                        "userCodes/" +
+                        /*"/Quizapp/quizappserver/userCodes/"*/ sessionID;
 
                     fs.mkdirSync(dir);
 
@@ -346,7 +397,7 @@ router.post("/createCodeSession", auth, async (req, res) => {
                         });
                     }
 
-                    await admin.insertMany(bulkUsers);
+                    await user.insertMany(bulkUsers);
                     bulkUsers.forEach((_user) => {
                         console.log(
                             _user.emailID,
@@ -360,7 +411,7 @@ router.post("/createCodeSession", auth, async (req, res) => {
 
                     const tempsessionID = newSession._id.toString();
 
-                    const up = await user.findOneAndUpdate(
+                    const up = await admin.findOneAndUpdate(
                         { emailID: emailID },
                         {
                             $push: {
@@ -387,26 +438,27 @@ router.post("/createCodeSession", auth, async (req, res) => {
 });
 
 async function mail(email, pwd, sessionID) {
-    let testAccount = await nodemailer.createTestAccount();
-    let transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: "ngawade912@gmail.com",
-            pass: "nanagawade",
-        },
-    });
-    console.log("email =====> ", email);
-    let info = await transporter.sendMail({
-        from: '"Quiz App" <ngawade912@gmail.com>',
-        to: email,
-        subject: "Quiz Account Credentials",
-        text: `Your account for quiz has been created. Account details are as follows:
+    try {
+        let testAccount = await nodemailer.createTestAccount();
+        let transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "ngawade912@gmail.com",
+                pass: "nanagawade",
+            },
+        });
+        console.log("email =====> ", email);
+        let info = await transporter.sendMail({
+            from: '"Quiz App" <ngawade912@gmail.com>',
+            to: email,
+            subject: "Quiz Account Credentials",
+            text: `Your account for quiz has been created. Account details are as follows:
                  Username : ngawade911@gmail.com
                  Password : 41a0de3d
                  Session ID: 5f56131071c5f41e6c5ccce0
         
                Note: Do not share the credentials with anyone.`,
-        html: `Your account for quiz has been created. Account details are as follows:
+            html: `Your account for quiz has been created. Account details are as follows:
                <br />
                <b>Username  : </b> ${email}<br />
                <b>Password  : </b> ${pwd}<br />
@@ -414,7 +466,26 @@ async function mail(email, pwd, sessionID) {
                <br />
                <b>Note: Do not share the credentials with anyone.</b>
         `,
-    });
+        });
+    } catch (e) {
+        console.log(e);
+    }
 }
+
+cleanup = async () => {
+    const dir = path.join(__dirname, "../public/cache");
+    try {
+        fs.readdir(dir, (e, files) => {
+            if (e) throw e;
+            for (const file of files) {
+                fs.unlink(path.join(dir, file), (e) => {
+                    if (e) throw e;
+                });
+            }
+        });
+    } catch (e) {
+        console.log(e);
+    }
+};
 
 module.exports = router;
