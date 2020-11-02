@@ -26,6 +26,28 @@ router.get("/", async (req, res) => {
     res.send("Done");
 });
 
+router.post("/registerAdmin", auth, async (req, res) => {
+    try {
+        console.log("YOO", req.emailID);
+        const user1 = await admin.findOne({ emailID: req.emailID });
+        console.log(user1);
+        if (req.admin && req.error == undefined && user1.superAdmin == true) {
+            const newUser = new admin({
+                emailID: req.body.emailID,
+                password: req.body.password,
+            });
+
+            await newUser.save();
+            res.status(200).send("User added");
+        } else {
+            res.status(401).send("Unauthorized");
+        }
+    } catch (e) {
+        console.log(e);
+        res.status(500).send("Something Went wrong");
+    }
+});
+
 router.post("/activateUser", auth, async (req, res) => {
     try {
         if (req.admin && req.error == undefined) {

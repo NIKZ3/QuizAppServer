@@ -18,6 +18,7 @@ const auth = async (req, res, next) => {
         err = { error: "User Token expired or malformed" };
         //console.log(err);
         req.error = err;
+        console.log(err);
         next();
     }
 };
